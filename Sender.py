@@ -69,6 +69,7 @@ class Sender:
 			ack_sock.settimeout(self.INITIAL_TIMEOUT)
 			ack_no = ack_sock.recv(self.ACK_BUFF)
 		except timeout:
+			self.retransmit_count += 1
 			self.send_and_receive(unpacked_segment, ack_sock, file_sock)
 
 		# check if out-of-order or repeated: if the wrong segment was ACK'd, retransmit
@@ -138,6 +139,7 @@ class Sender:
 		# initialize values
 		self.segment_count = 0
 		self.byte_count = 0
+		self.retransmit_count = 0
 		self.estimated_RTT = self.INITIAL_RTT
 		self.deviation_RTT = 0
 
@@ -156,7 +158,7 @@ class Sender:
 		# output data for completed transmission
 		print 'Total bytes sent = ' + str(self.byte_count)
 		print 'Segments sent = ' + str(self.segment_count)
-		print 'Segments retransmitted = ' 
+		print 'Segments retransmitted = ' + str(self.retransmit_count)
 		stdout.flush()
 
 def main(argv):       

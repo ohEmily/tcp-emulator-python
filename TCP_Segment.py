@@ -33,7 +33,7 @@ class TCP_Segment:
 
     # fits fields into segment of the right size for sending
     def pack_segment(self):
-        checksum = self.checksum_function()
+        checksum = TCP_Segment.checksum_function(self)
 
         # format data correctly
         data_padding = self.MSS - len(self.data)
@@ -56,21 +56,26 @@ class TCP_Segment:
         return self
 
 
-   # returns true if checksum is good, false if bad
-    def check_checksum(self):
-        return (self.checksum == self.checksum_function)
+    # returns true if checksum is good, false if bad
+    @staticmethod
+    def is_corrupted(instance):
+        return (instance.checksum == TCP_Segment.checksum_function(instance))
 
 
-    # uses header values to calculate checksum in a consistent fashion
+    # uses header values (except checksum) and data to calculate checksum.
     #
-    # based on the UDP checksum described in the textbook:
+    # based loosely on the UDP checksum described in the textbook:
     # "UDP at the sender side performs the 1s complement of the sum of all 
     # the 16-bit words in the segment, with any overflow encountered during
     # the sum being wrapped around." (pg. 202)
     #
-    def checksum_function(self):
-        # concat the 16-bit words
-        all_text = str(self.source_port) + str(self.dest_port)
+    @staticmethod
+    def checksum_function(instance):
+        # instead of concat 16-bit words, we use data that is a multiple of 16
+        # (i.e. 576, the whole segment)
+        all_text = str(instance.source_port) + str(instance.dest_port) + str(instance.sequence_no) \
+            + str(instance.ACK_no) + str(instance.HEADER_SIZE) + str(instance.FIN) + str(instance.ACK) \
+            + instance.data
 
         sum = 0
         for i in range((0), len(all_text) - 1, 2):

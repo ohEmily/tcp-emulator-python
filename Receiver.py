@@ -31,25 +31,24 @@ class Receiver:
 
     def send_recv_segments(self, ack_sock, file_sock_UDP):           
         with open(self.filename, 'wb') as output:
-            
             # get first segment
             packed_segment = file_sock_UDP.recv(TCP_Segment.PACKET_SIZE)
             unpacked_segment = TCP_Segment.unpack_segment(packed_segment)
-            
-            print 'current FIN bit ' + str(unpacked_segment.FIN)
-
+    
             next_expected_sequence_no = 0
+
             while (unpacked_segment.FIN == 0):
-                print 'received a packet. '
-                stdout.flush() 
+                packet_valid = True
 
                 # check for corrupt packet: checksum
+                if (TCP_Segment.is_corrupted(unpacked_segment)):
+                    packet_valid = False
 
-                print ('this packet is number ' + str(unpacked_segment.sequence_no) + ' and we were expecting ' + str(next_expected_sequence_no))
                 # check if correct segment was sent
-                if (unpacked_segment.sequence_no == next_expected_sequence_no):
-                    # this is the correct packet
+                if (unpacked_segment.sequence_no != next_expected_sequence_no):
+                    packet_valid = False
 
+                if (packet_valid):
                     next_expected_sequence_no += len(unpacked_segment.data)   
                     output.write(unpacked_segment.data)
                 
