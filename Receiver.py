@@ -69,6 +69,7 @@ class Receiver:
             next_expected_sequence_no += len(unpacked_segment.data.strip())
             self.log_data(recv_time, unpacked_segment.sequence_no, unpacked_segment.ACK_no, unpacked_segment.FIN)
 
+            print 'Transmission successful. '
             print 'Total bytes read to ' + self.filename + ': ' + str(next_expected_sequence_no)
 
     def open_sockets(self):
