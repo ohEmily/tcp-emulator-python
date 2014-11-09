@@ -166,10 +166,8 @@ class Sender:
 		# open both sockets
 		ack_sock, file_sock = self.open_sockets()
 
+		start_transmission_time = datetime.datetime.now()
 		while (self.segment_count < len(self.file_send_buffer)):
-			print ('sending segment number ' + str(self.segment_count))
-			stdout.flush()
-
 			this_segment = self.file_send_buffer[self.segment_count]
 			self.send_and_receive(this_segment, ack_sock, file_sock)
 			self.segment_count += 1
@@ -177,9 +175,16 @@ class Sender:
 		# output data for completed transmission
 		print 'Delivery completed successfully.'
 		print 'Total bytes sent = ' + str(self.byte_count)
-		print 'Segments sent = ' + str(self.segment_count)
+		print 'Segments sent [successfully] = ' + str(self.segment_count)
 		print 'Segments retransmitted = ' + str(self.retransmit_count)
+		print 'Segments sent [including retransmissions] = ' + str(self.segment_count + self.retransmit_count)
+
+		# output additional statistics
+		total_seconds = (datetime.datetime.now() - start_transmission_time).total_seconds()
+		print '\nTotal delivery time = ' + str(total_seconds) + ' seconds. '
+		print 'Average bytes per second = ' + str(total_seconds / self.byte_count) + ' B/s. '
 		stdout.flush()
+
 
 def main(argv):       
 	Sender(argv)

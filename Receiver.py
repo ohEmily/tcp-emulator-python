@@ -51,9 +51,6 @@ class Receiver:
                 if (packet_valid):
                     next_expected_sequence_no += len(unpacked_segment.data)   
                     output.write(unpacked_segment.data)
-                
-                    print 'Received in-order packet: ' + str(unpacked_segment.sequence_no)
-                    stdout.flush()
 
                     # ACK reception
                     ack_sock.sendall(str(unpacked_segment.ACK_no))
