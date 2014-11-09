@@ -9,10 +9,11 @@ reordering and copes with dynamic network delays.
 '''
 
 from sys import argv, stdout
-from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM
+from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, timeout
 from threading import Timer, current_thread
 from TCP_Segment import TCP_Segment
 import datetime
+import time
 
 class Sender:
 	IP_ADDR = '127.0.0.1'
@@ -59,10 +60,18 @@ class Sender:
 
 	def send_and_receive(self, unpacked_segment, ack_sock, file_sock):
 		packed_segment = unpacked_segment.pack_segment()
-
+		
+		print 'sending packet number ' + str(self.segment_count) \
+			+ ' with fin bit ' + str(unpacked_segment.FIN)
+	
 		file_sock.sendto(packed_segment, (self.remote_ip, self.remote_port))
 
-		ack_sock.recv(self.ACK_BUFF)
+		# try to send; if timeout, retransmit
+		try:
+			ack_sock.settimeout(self.INITIAL_TIMEOUT)
+			ack_sock.recv(self.ACK_BUFF)
+		except timeout:
+			self.send_and_receive(unpacked_segment, ack_sock, file_sock)
 
 		# check if out-of-order: if the wrong segment was ACK'd, retransmit
 
@@ -132,10 +141,12 @@ class Sender:
 		ack_sock, file_sock = self.open_sockets()
 
 		while (self.segment_count < len(self.file_send_buffer)):
+			print ('sending segment number ' + str(self.segment_count))
+			stdout.flush()
+
 			this_segment = self.file_send_buffer[self.segment_count]
 			self.send_and_receive(this_segment, ack_sock, file_sock)
 			
-			#if (is_successful)
 			self.byte_count += len(this_segment.data.strip())
 			self.segment_count += 1
 
