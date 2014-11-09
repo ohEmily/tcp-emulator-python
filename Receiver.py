@@ -51,21 +51,21 @@ class Receiver:
 
                 next_expected_sequence_no += len(unpacked_segment.data)   
                 output.write(unpacked_segment.data)
-            
+                
                 print 'Received in-order packet: ' + str(unpacked_segment.sequence_no)
                 stdout.flush()
 
                 # ACK reception
                 ack_sock.sendall(str(unpacked_segment.ACK_no))
                 recv_time = datetime.datetime.now()
-                #self.log_data(recv_time, unpacked_segment.sequence_no, unpacked_segment.ACK_no, unpacked_segment.FIN)
+                self.log_data(recv_time, unpacked_segment.sequence_no, unpacked_segment.ACK_no, unpacked_segment.FIN)
                 
                 packed_segment = file_sock_UDP.recv(TCP_Segment.PACKET_SIZE)
                 unpacked_segment = TCP_Segment.unpack_segment(packed_segment)
 
             # write final segment with FIN == 1
-            output.write(unpacked_segment.data)
-            next_expected_sequence_no += len(unpacked_segment.data)
+            output.write(unpacked_segment.data.strip())
+            next_expected_sequence_no += len(unpacked_segment.data.strip())
             
             print 'Total bytes read to ' + self.filename + ': ' + str(next_expected_sequence_no)
 

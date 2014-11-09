@@ -34,6 +34,11 @@ class TCP_Segment:
     # fits fields into segment of the right size for sending
     def pack_segment(self):
         checksum = self.checksum_function()
+
+        # format data correctly
+        data_padding = self.MSS - len(self.data)
+        self.data += ' ' * data_padding
+
         return struct.pack(self.HEADER_FORMAT, 
                         self.source_port, self.dest_port, 
                         self.sequence_no, self.ACK_no, 

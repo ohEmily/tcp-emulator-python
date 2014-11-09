@@ -59,8 +59,7 @@ class Sender:
 
 	def send_and_receive(self, unpacked_segment, ack_sock, file_sock):
 		packed_segment = unpacked_segment.pack_segment()
-		print 'sending packet number ' + str(self.segment_count) \
-			+ ' with fin bit ' + str(unpacked_segment.FIN)
+
 		file_sock.sendto(packed_segment, (self.remote_ip, self.remote_port))
 
 		ack_sock.recv(self.ACK_BUFF)
@@ -133,14 +132,11 @@ class Sender:
 		ack_sock, file_sock = self.open_sockets()
 
 		while (self.segment_count < len(self.file_send_buffer)):
-			print ('sending segment number ' + str(self.segment_count))
-			stdout.flush()
-
 			this_segment = self.file_send_buffer[self.segment_count]
 			self.send_and_receive(this_segment, ack_sock, file_sock)
 			
 			#if (is_successful)
-			self.byte_count += len(this_segment.data)
+			self.byte_count += len(this_segment.data.strip())
 			self.segment_count += 1
 
 		# output data for completed transmission
