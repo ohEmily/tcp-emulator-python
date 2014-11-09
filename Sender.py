@@ -40,9 +40,10 @@ class Sender:
 						  + 'Estimated RTT: ' + str(self.estimated_RTT) + '\n')
 	
 	# calls all the relevant RTT functions to update things
-	def update_RTT_vars(self, sample_RTT):
+	def update_timeout_and_RTT(self, sample_RTT):
 		self.update_deviation_RTT(sample_RTT)
 		self.update_estimated_RTT(sample_RTT)
+		self.update_tiemout_interval(sample_RTT)
 	
 	# tracks how long packet transmission should take
 	def update_estimated_RTT(self, sample_RTT):
@@ -58,6 +59,9 @@ class Sender:
 		self.deviation_RTT = (1 - self.RTT_BETA) * self.deviation_RTT + \
 			self.RTT_BETA * abs(sample_RTT - self.estimated_RTT)
 
+	def update_tiemout_interval(self, sample_RTT):
+		self.timeout_interval = self.estimated_RTT + 4 * self.deviation_RTT
+
 	def send_and_receive(self, unpacked_segment, ack_sock, file_sock):
 		packed_segment = unpacked_segment.pack_segment()
 	
@@ -65,17 +69,18 @@ class Sender:
 		send_time = datetime.datetime.now() # save sendtime for logging
 
 		# try to send; if timeout, retransmit
-		ack_no = -1
 		try:
-			ack_sock.settimeout(self.INITIAL_TIMEOUT)
+			ack_sock.settimeout(self.timeout_interval)
 			ack_no = ack_sock.recv(self.ACK_BUFF)
+
+			# if successful, log and update RTTs
+			recv_time = datetime.datetime.now()
+
+			self.update_timeout_and_RTT((recv_time - send_time).total_seconds())
+			self.log_data(send_time, unpacked_segment.sequence_no, ack_no, unpacked_segment.FIN)
 		except timeout:
 			self.retransmit_count += 1
 			self.send_and_receive(unpacked_segment, ack_sock, file_sock)
-
-		recv_time = datetime.datetime.now()
-		self.update_RTT_vars((recv_time - send_time).total_seconds())
-		self.log_data(send_time, unpacked_segment.sequence_no, ack_no, unpacked_segment.FIN)
 
 	# create TCP-segments with all fields filled in.
 	def read_file(self):
@@ -139,7 +144,15 @@ class Sender:
 		self.byte_count = 0
 		self.retransmit_count = 0
 		self.estimated_RTT = self.INITIAL_RTT
+		self.timeout_interval = self.INITIAL_TIMEOUT
 		self.deviation_RTT = 0
+
+		# explain that only window size of 1 is supported
+		if (self.window_size != 1):
+			print 'Sorry, this is a stop-and-go implementation of TCP, ',
+			print 'and as such a window size of greater than 1 is not supported.'
+			stdout.flush()
+			exit(0)
 
 		try:
 			# prepare array with TCP-segments
