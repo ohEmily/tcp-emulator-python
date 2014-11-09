@@ -36,7 +36,8 @@ class Sender:
 						  + 'Destination: ' + str(self.remote_ip) + ':' + str(self.remote_port) + ', ' \
 						  + 'Sequence number: ' + str(sequence_no) + ', '  \
 						  + 'ACK number: ' + str(ack_no) + ', ' \
-						  + 'FIN: ' + str(FIN) + '\n')
+						  + 'FIN: ' + str(FIN) + ', ' \
+						  + 'Estimated RTT: ' + str(self.estimated_RTT) + '\n')
 	
 	# calls all the relevant RTT functions to update things
 	def update_RTT_vars(self, sample_RTT):
@@ -72,10 +73,8 @@ class Sender:
 			self.retransmit_count += 1
 			self.send_and_receive(unpacked_segment, ack_sock, file_sock)
 
-		# check if out-of-order or repeated: if the wrong segment was ACK'd, retransmit
-		# if (ack_no != unpacked_segment.sequence_no)
-		#	self.send_and_receive(unpacked_segment, ack_sock, file_sock)
-
+		recv_time = datetime.datetime.now()
+		self.update_RTT_vars((recv_time - send_time).total_seconds())
 		self.log_data(send_time, unpacked_segment.sequence_no, ack_no, unpacked_segment.FIN)
 
 	# create TCP-segments with all fields filled in.
@@ -104,7 +103,9 @@ class Sender:
 					self.file_send_buffer.append(current_segment)
 				sequence_no += len(previous_chunk)
 				expected_ACK = sequence_no # for stop and wait, expected_ACK == sequence_no
-	
+			
+			self.byte_count += sequence_no # collecting transmission statistics
+
 	def open_sockets(self):
 		# open ACK-reception socket    
 		print 'Listening on port ' + str(self.ack_port_num) + ' for ACKs...\n'   
@@ -133,15 +134,15 @@ class Sender:
 		else:
 			self.window_size = 1
 		
-		# prepare array with TCP-segments
-		self.read_file()
-		
 		# initialize values
 		self.segment_count = 0
 		self.byte_count = 0
 		self.retransmit_count = 0
 		self.estimated_RTT = self.INITIAL_RTT
 		self.deviation_RTT = 0
+
+		# prepare array with TCP-segments
+		self.read_file()
 
 		ack_sock, file_sock = self.open_sockets()
 
@@ -151,8 +152,6 @@ class Sender:
 
 			this_segment = self.file_send_buffer[self.segment_count]
 			self.send_and_receive(this_segment, ack_sock, file_sock)
-			
-			self.byte_count += len(this_segment.data.strip())
 			self.segment_count += 1
 
 		# output data for completed transmission
