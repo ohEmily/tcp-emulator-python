@@ -13,7 +13,6 @@ from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, timeout
 from threading import Timer, current_thread
 from TCP_Segment import TCP_Segment
 import datetime
-import time
 
 class Sender:
 	IP_ADDR = '127.0.0.1'
@@ -60,20 +59,23 @@ class Sender:
 
 	def send_and_receive(self, unpacked_segment, ack_sock, file_sock):
 		packed_segment = unpacked_segment.pack_segment()
-		
-		print 'sending packet number ' + str(self.segment_count) \
-			+ ' with fin bit ' + str(unpacked_segment.FIN)
 	
 		file_sock.sendto(packed_segment, (self.remote_ip, self.remote_port))
+		send_time = datetime.datetime.now() # save sendtime for logging
 
 		# try to send; if timeout, retransmit
+		ack_no = -1
 		try:
 			ack_sock.settimeout(self.INITIAL_TIMEOUT)
-			ack_sock.recv(self.ACK_BUFF)
+			ack_no = ack_sock.recv(self.ACK_BUFF)
 		except timeout:
 			self.send_and_receive(unpacked_segment, ack_sock, file_sock)
 
-		# check if out-of-order: if the wrong segment was ACK'd, retransmit
+		# check if out-of-order or repeated: if the wrong segment was ACK'd, retransmit
+		# if (ack_no != unpacked_segment.sequence_no)
+		#	self.send_and_receive(unpacked_segment, ack_sock, file_sock)
+
+		self.log_data(send_time, unpacked_segment.sequence_no, ack_no, unpacked_segment.FIN)
 
 	# create TCP-segments with all fields filled in.
 	def read_file(self):
@@ -82,13 +84,12 @@ class Sender:
 		with open(self.filename, "rb") as f:
 			current_chunk = f.read(TCP_Segment.MSS)
 			sequence_no = 0
+			expected_ACK = 0
 			
 			# create each TCP segment and append it to the array
 			while current_chunk != '':
-				sequence_no += len(current_chunk)
 				previous_chunk = current_chunk
 				current_chunk = f.read(TCP_Segment.MSS)
-				expected_ACK = sequence_no + len(current_chunk)
 
 				if (len(current_chunk) == 0): # is last segment -- FIN == 1
 					current_segment = TCP_Segment(self.ack_port_num, \
@@ -100,6 +101,8 @@ class Sender:
 											self.remote_port, sequence_no, \
 											expected_ACK, 0, previous_chunk)
 					self.file_send_buffer.append(current_segment)
+				sequence_no += len(previous_chunk)
+				expected_ACK = sequence_no # for stop and wait, expected_ACK == sequence_no
 	
 	def open_sockets(self):
 		# open ACK-reception socket    
