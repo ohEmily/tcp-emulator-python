@@ -8,7 +8,7 @@ reordering and copes with dynamic network delays.
 @author: Emily Pakulski
 '''
 
-from sys import argv, stdout
+from sys import argv, stdout, exit
 from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, timeout
 from threading import Timer, current_thread
 from TCP_Segment import TCP_Segment
@@ -80,7 +80,7 @@ class Sender:
 	# create TCP-segments with all fields filled in.
 	def read_file(self):
 		self.file_send_buffer = []
-		
+
 		with open(self.filename, "rb") as f:
 			current_chunk = f.read(TCP_Segment.MSS)
 			sequence_no = 0
@@ -134,16 +134,23 @@ class Sender:
 		else:
 			self.window_size = 1
 		
-		# initialize values
+		# initialize instance vars
 		self.segment_count = 0
 		self.byte_count = 0
 		self.retransmit_count = 0
 		self.estimated_RTT = self.INITIAL_RTT
 		self.deviation_RTT = 0
 
-		# prepare array with TCP-segments
-		self.read_file()
+		try:
+			# prepare array with TCP-segments
+			self.read_file()
+		except:
+			print 'Error: file \'' + self.filename + '\' not found.',
+			print 'Please check the filename and try again. '
+			stdout.flush()
+			exit(0)
 
+		# open both sockets
 		ack_sock, file_sock = self.open_sockets()
 
 		while (self.segment_count < len(self.file_send_buffer)):
@@ -155,6 +162,7 @@ class Sender:
 			self.segment_count += 1
 
 		# output data for completed transmission
+		print 'Delivery completed successfully.'
 		print 'Total bytes sent = ' + str(self.byte_count)
 		print 'Segments sent = ' + str(self.segment_count)
 		print 'Segments retransmitted = ' + str(self.retransmit_count)
