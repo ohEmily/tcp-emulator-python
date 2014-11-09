@@ -25,6 +25,39 @@ class Sender:
     RTT_ALPHA = 0.125
     RTT_BETA = 0.25 
 
+        def log(self, text):
+        with open(self.logfile, "a") as logfile:
+            logfile.write(text)
+    
+    # logs when you sent the packet
+    def log_data(self, timestamp, sequence_no, ack_no, FIN):
+        self.log('Timestamp: ' + str(timestamp) + ', ' \
+                          + 'Source: ' + str(self.IP_ADDR) + ':' + str(self.ack_port_num) + ', ' \
+                          + 'Destination: ' + str(self.remote_ip) + ':' + str(self.remote_port) + ', ' \
+                          + 'Sequence number: ' + str(sequence_no) + ', '  \
+                          + 'ACK number: ' + str(ack_no) + ', ' \
+                          + 'FIN: ' + str(FIN) + '\n')
+    
+    # calls all the relevant RTT functions to update things
+    def update_RTT_vars(self, sample_RTT):
+        self.update_deviation_RTT(sample_RTT)
+        self.update_estimated_RTT(sample_RTT)
+    
+    # tracks how long packet transmission should take
+    def update_estimated_RTT(self, sample_RTT):
+        # first packet transmitted
+        if (self.estimated_RTT == self.INITIAL_RTT):
+            self.estimated_RTT = sample_RTT
+        else: # formula on page 239 
+            self.estimated_RTT = (1 - self.RTT_ALPHA) * self.estimated_RTT \
+                + self.RTT_ALPHA * sample_RTT
+    
+    # tracks the variability of RTT
+    def update_deviation_RTT(self, sample_RTT):
+        self.deviation_RTT = (1 - self.RTT_BETA) * self.deviation_RTT + \
+            self.RTT_BETA * abs(sample_RTT - self.estimated_RTT)
+
+
     # create TCP-segments with all fields filled in.
     def read_file(self):
         self.file_send_buffer = []
