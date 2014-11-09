@@ -4,7 +4,7 @@ An implementation of a stop-and-go version of the TCP protocol.
 
 This app runs on top of a lossy network emulator, whereby we are able to simulate lost packets, duplicate packets, corrupted packets, etc. A UDP socket is used to transmit file data so we don't invoke the built-in features of Python's TCP implementation.
 
-Because this is a model, not all TCP flags included in normal TCP headers are used. 
+Because this is a model, not all TCP flags included in normal TCP headers are used. ACK is included and FIN is included (ACK is always set to 1 because the connection is assumed to be established in this model, and FIN is set to 0 except for on the last segment, when it is set to 1).
 
 How to run
 ----------

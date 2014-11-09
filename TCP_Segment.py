@@ -18,6 +18,7 @@ class TCP_Segment:
     HEADER_FORMAT = 'H H I I H 2s b b 2s ' + str(MSS) + 's'
     PACKET_SIZE = HEADER_SIZE + MSS # should be 576
     
+
     # constructor for an unpacked TCP_segment
     def __init__(self, source_port, dest_port, sequence_no, ack_no, FIN, data):
         self.source_port = source_port
@@ -29,6 +30,7 @@ class TCP_Segment:
         self.FIN = FIN
         self.data = data
     
+
     # fits fields into segment of the right size for sending
     def pack_segment(self):
         checksum = self.checksum_function()
@@ -38,6 +40,7 @@ class TCP_Segment:
                         self.HEADER_SIZE, self.ACK, self.FIN,  
                         str(checksum), str(self.data))
     
+
     # instantiates a TCP_Segment with the passed in string form of a packed 
     # segment.
     @classmethod
@@ -47,5 +50,33 @@ class TCP_Segment:
             self.data) = struct.unpack(TCP_Segment.HEADER_FORMAT, packed_segment)
         return self
 
+
+   # returns true if checksum is good, false if bad
+    def check_checksum(self):
+        return (self.checksum == self.checksum_function)
+
+
+    # uses header values to calculate checksum in a consistent fashion
+    #
+    # based on the UDP checksum described in the textbook:
+    # "UDP at the sender side performs the 1s complement of the sum of all 
+    # the 16-bit words in the segment, with any overflow encountered during
+    # the sum being wrapped around." (pg. 202)
+    #
     def checksum_function(self):
-        return 0
+        # concat the 16-bit words
+        all_text = str(self.source_port) + str(self.dest_port)
+
+        sum = 0
+        for i in range((0), len(all_text) - 1, 2):
+            # get unicode/byte values of operands
+            first_operand = ord(all_text[i])
+            second_operand = ord(all_text[i+1]) << 8
+
+            # add
+            current_sum = first_operand + second_operand
+            
+            # add and wrap around
+            sum = ((sum + current_sum) & 0xffff) + ((sum + current_sum) >> 16)
+
+        return sum
