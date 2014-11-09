@@ -57,6 +57,15 @@ class Sender:
 		self.deviation_RTT = (1 - self.RTT_BETA) * self.deviation_RTT + \
 			self.RTT_BETA * abs(sample_RTT - self.estimated_RTT)
 
+	def send_and_receive(self, unpacked_segment, ack_sock, file_sock):
+		packed_segment = unpacked_segment.pack_segment()
+		print 'sending packet number ' + str(self.segment_count) \
+			+ ' with fin bit ' + str(unpacked_segment.FIN)
+		file_sock.sendto(packed_segment, (self.remote_ip, self.remote_port))
+
+		ack_sock.recv(self.ACK_BUFF)
+
+		# check if out-of-order: if the wrong segment was ACK'd, retransmit
 
 	# create TCP-segments with all fields filled in.
 	def read_file(self):
@@ -76,12 +85,12 @@ class Sender:
 				if (len(current_chunk) == 0): # is last segment -- FIN == 1
 					current_segment = TCP_Segment(self.ack_port_num, \
 											self.remote_port, sequence_no, \
-											expected_ACK, True, previous_chunk)
+											expected_ACK, 1, previous_chunk)
 					self.file_send_buffer.append(current_segment)
 				else: # is not last segment -- FIN == 0
 					current_segment = TCP_Segment(self.ack_port_num, \
 											self.remote_port, sequence_no, \
-											expected_ACK, False, previous_chunk)
+											expected_ACK, 0, previous_chunk)
 					self.file_send_buffer.append(current_segment)
 	
 	def open_sockets(self):
@@ -123,13 +132,16 @@ class Sender:
 
 		ack_sock, file_sock = self.open_sockets()
 
-		i = 0
-		while (i < self.file_send_buffer):
-			this_segment = self.file_send_buffer[i]
-			# self.send_and_receive(this_segment, ack_sock, file_sock)
+		while (self.segment_count < len(self.file_send_buffer)):
+			print ('sending segment number ' + str(self.segment_count))
+			stdout.flush()
+
+			this_segment = self.file_send_buffer[self.segment_count]
+			self.send_and_receive(this_segment, ack_sock, file_sock)
 			
 			#if (is_successful)
-			i += 1
+			self.byte_count += len(this_segment.data)
+			self.segment_count += 1
 
 		# output data for completed transmission
 		print 'Total bytes sent = ' + str(self.byte_count)

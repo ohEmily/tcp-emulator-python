@@ -12,10 +12,10 @@ from sys import stdout
 class TCP_Segment:
     HEADER_SIZE = 20
     MSS = 556 # maximum segment size; the max of the data
-    # format: source_port == 2 bytes, dest_port == 2 bytes, 
-    # seq_no == 4 bytes, ack_no == 4 bytes, header_len == 2 bytes, 
-    # FIN == 1 byte, ACK == 1 byte, checksum == 2 bytes and data
-    HEADER_FORMAT = 'H H I I H 2s b b 2s ' + str(MSS) + 's'
+    # HEADER_FORMAT explanation: source_port == 2 bytes, dest_port == 2 bytes, 
+    # seq_no == 4 bytes, ack_no == 4 bytes, header_len == 2 bytes, FIN == 1 byte, 
+    # ACK == 1 byte, checksum == 2 bytes and data
+    HEADER_FORMAT = 'H H I I H b b 2s ' + str(MSS) + 's'
     PACKET_SIZE = HEADER_SIZE + MSS # should be 576
     
 
@@ -37,7 +37,7 @@ class TCP_Segment:
         return struct.pack(self.HEADER_FORMAT, 
                         self.source_port, self.dest_port, 
                         self.sequence_no, self.ACK_no, 
-                        self.HEADER_SIZE, self.ACK, self.FIN,  
+                        self.HEADER_SIZE, self.FIN, self.ACK,
                         str(checksum), str(self.data))
     
 
@@ -46,7 +46,7 @@ class TCP_Segment:
     @classmethod
     def unpack_segment(self, packed_segment):
         (self.source_port, self.dest_port, self.sequence_no, 
-            self.ACK_no, header_size, self.ACK, self.FIN, self.checksum, 
+            self.ACK_no, header_size, self.FIN, self.ACK, self.checksum, 
             self.data) = struct.unpack(TCP_Segment.HEADER_FORMAT, packed_segment)
         return self
 

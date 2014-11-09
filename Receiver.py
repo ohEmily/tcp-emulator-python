@@ -36,25 +36,38 @@ class Receiver:
             packed_segment = file_sock_UDP.recv(TCP_Segment.PACKET_SIZE)
             unpacked_segment = TCP_Segment.unpack_segment(packed_segment)
             
-            total_bytes_read = 0
-            #while (unpacked_segment.FIN == False):
-            while (len(packed_segment) > 0):
-                total_bytes_read += len(unpacked_segment.data)   
+            print 'current FIN bit ' + str(unpacked_segment.FIN)
+
+            next_expected_sequence_no = 0
+            while (unpacked_segment.FIN == 0):
+                print 'received a packet. '
+                stdout.flush() 
+
+                # check for corrupt packet: checksum
+
+                # check if correct segment was sent
+                #if (unpacked_segment.data == next_expected_sequence_no):
+                # this is the correct packet
+
+                next_expected_sequence_no += len(unpacked_segment.data)   
                 output.write(unpacked_segment.data)
-                
-                print 'Received packet: ' + str(unpacked_segment.sequence_no)
+            
+                print 'Received in-order packet: ' + str(unpacked_segment.sequence_no)
                 stdout.flush()
 
                 # ACK reception
                 ack_sock.sendall(str(unpacked_segment.ACK_no))
                 recv_time = datetime.datetime.now()
-                self.log_data(recv_time, unpacked_segment.sequence_no, unpacked_segment.ACK_no, unpacked_segment.FIN)
+                #self.log_data(recv_time, unpacked_segment.sequence_no, unpacked_segment.ACK_no, unpacked_segment.FIN)
                 
-                # get next segment
                 packed_segment = file_sock_UDP.recv(TCP_Segment.PACKET_SIZE)
                 unpacked_segment = TCP_Segment.unpack_segment(packed_segment)
+
+            # write final segment with FIN == 1
+            output.write(unpacked_segment.data)
+            next_expected_sequence_no += len(unpacked_segment.data)
             
-            print 'Total bytes read to ' + self.filename + ': ' + str(total_bytes_read)
+            print 'Total bytes read to ' + self.filename + ': ' + str(next_expected_sequence_no)
 
     def open_sockets(self):
     	print 'Opening TCP connection for sending ACKs on port ' + str(self.sender_port) + '...'
@@ -66,7 +79,7 @@ class Receiver:
         print 'Receiver listening on port ' + str(self.listening_port) + '...\n'
         stdout.flush()
 
-        return (ack_sock, file_sock)
+        return (ack_sock, file_sock_UDP)
 
     def __init__(self, argv):
         self.filename = argv[1]
