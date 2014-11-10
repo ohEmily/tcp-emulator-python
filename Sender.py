@@ -89,7 +89,7 @@ class Sender:
 		with open(self.filename, "rb") as f:
 			current_chunk = f.read(TCP_Segment.MSS)
 			sequence_no = 0
-			expected_ACK = 0
+			expected_ACK = sequence_no + len(current_chunk)
 			
 			# create each TCP segment and append it to the array
 			while current_chunk != '':
@@ -107,7 +107,7 @@ class Sender:
 											expected_ACK, 0, previous_chunk)
 					self.file_send_buffer.append(current_segment)
 				sequence_no += len(previous_chunk)
-				expected_ACK = sequence_no # for stop and wait, expected_ACK == sequence_no
+				expected_ACK = sequence_no + len(current_chunk) # for stop and wait, expected_ACK == sequence_no
 			
 			self.byte_count += sequence_no # collecting transmission statistics
 

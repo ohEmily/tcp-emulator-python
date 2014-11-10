@@ -17,7 +17,11 @@ This implementation handles packet loss, corrupted packets, packet delays, dupli
 
 Checksum
 --------
-The TCP checksum uses both the TCP header and the data to calculate a checksum.	
+The TCP checksum uses both the TCP header and the data to calculate a checksum.
+
+ACKs and Sequence Numbers
+-------------------------
+In this implementation, the ACK represents the next expected sequence number that the receiver will be sending back. This is how the receiver knows whether or not a packet is out-of-order. The receiver logs the sequence number it got and the ACK it sent.
 
 How to run
 ----------
